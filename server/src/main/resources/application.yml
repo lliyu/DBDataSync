@@ -1,0 +1,22 @@
+server:
+  port: 8080
+spring:
+  mvc:
+    static-path-pattern: /static/**
+#  jackson:
+#    default-property-inclusion: non_null #返回时过滤掉null
+  thymeleaf:
+    prefix: classpath:/templates
+    enabled: true
+    encoding: utf-8
+    mode: HTML
+    cache: false
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
+#mybatis:
+#  mapper-locations: classpath:mapping/*.xml
+#  type-aliases-package: com.dataexchange.server.mapper
+#  configuration:
+#    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

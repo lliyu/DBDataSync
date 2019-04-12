@@ -1,0 +1,30 @@
+server:
+  port: 8081
+spring:
+  mvc:
+    static-path-pattern: /**
+  jpa:
+    database: MYSQL
+    show-sql: true
+    hibernate:
+      ddl-auto: update
+      naming.physical-strategy: org.hibernate.cfg.ImprovedNamingStrategy
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MySQL5Dialect
+#  jackson:
+#    default-property-inclusion: non_null #返回时过滤掉null
+  thymeleaf:
+    prefix: classpath:/templates
+    enabled: false
+    encoding: utf-8
+    mode: HTML
+  servlet:
+    multipart:
+      max-file-size: -1
+      max-request-size: -1
+mybatis:
+  mapper-locations: classpath:mapping/*.xml
+  type-aliases-package: com.prac.onlinesql.mapper
+  configuration:
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl

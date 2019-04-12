@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>数据表</title>
+    <script src="/static/js/vue.min.js"></script>
+    <script src="/static/js/jquery-3.3.1.js"></script>
+    <script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
+    <!--&lt;!&ndash; 引入样式 &ndash;&gt;-->
+    <!--<link rel="stylesheet" href="https://unpkg.com/element-ui/lib/theme-chalk/index.css">-->
+    <!--&lt;!&ndash; 引入组件库 &ndash;&gt;-->
+    <!--<script src="https://unpkg.com/element-ui/lib/index.js"></script>-->
+    <link rel="stylesheet" href="/static/css/page.css">
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+<div id="app" align="center">
+
+    <div>
+        <input type="button" @click="shows()" value="添加链接">
+        <a href="/sync"><button>数据交换</button></a>
+    </div>
+
+    <div class="conn-info" v-if="show">
+        IP: <input type="text" name="ip" v-model="ip">
+        username: <input type="text" name="username" v-model="username">
+        password: <input type="password" name="password" v-model="password">
+        port: <input type="text" name="port" v-model="port">
+        <input type="button" @click="register()" value="链接">
+    </div>
+
+    <div align="center" class="select">
+        <select class="db" onchange="changedb()"></select>
+        <!--<select v-model="selected">-->
+        <!--<option v-for="(option,index) in options" :value="option.dbName">{{ option.dbName }}</option>-->
+        <!--</select>-->
+        <!--<select name="public-choice" v-model="couponSelected" @change="getCouponSelected">-->
+        <!--<option :value="coupon.id" v-for="coupon in couponList" >{{coupon.name}}</option>-->
+        <!--</select>-->
+        <select class="tables" onchange="changeTable()"></select>
+    </div>
+
+    <div class="table-data">
+        <table border="1" >
+            <tr class="header">
+            </tr>
+            <tbody class="content">
+
+            </tbody>
+        </table>
+    </div>
+
+    <div class="page-bar">
+        <ul>
+            <li v-if="cur>1"><a @click="cur--,pageClick()">上一页</a></li>
+            <li v-if="cur==1"><a class="banclick">上一页</a></li>
+            <li v-for="index in indexs"  >
+                <a @click="btnClick(index)">{{ index }}</a>
+            </li>
+            <li v-if="cur!=all"><a @click="cur++,pageClick()">下一页</a></li>
+            <li v-if="cur == all"><a class="banclick">下一页</a></li>
+            <li><a>共<i>{{all}}</i>页</a></li>
+        </ul>
+    </div>
+</div>
+
+
+
+<script>
+    var vm = new Vue({
+        el: '#app',
+        data: {
+            limit: 10,
+            all: 8, //总页数
+            cur: 1,//当前页码
+            dbName: '',
+            tableName: '',
+            ip:'127.0.0.1',
+            username:'',
+            password:'',
+            port:'3306',
+            show:false
+        },
+        created: function() {
+            this.get();
+            this.selectDbsList();
+        },
+        watch: {
+            cur: function(oldValue , newValue){
+                console.log(arguments);
+            }
+        },
+        methods:{
+            get:function(){
+                //获取表中的数据
+                this.$http.get('/data',{
+                    params:{
+                        tableName:this.tableName,
+                        dbName:this.dbName,
+                        page:this.cur,
+                        limit:this.limit,
+                        ip:this.ip,
+                        username:this.username,
+                        password:this.password,
+                        port:this.port
+                    }
+                }).then(function(res){
+                    // $(".content").remove();
+                    var data = res.body.data;
+                    this.all = res.body.totalPage;
+                    var temp = '';
+                    if(res.body.data){
+                        for (var obj in data[0]){
+                            temp += "<th>" + obj + "</th>";
+                        }
+                        $(".header").html(temp);
+                        var cont = "";
+                        for (var i = 0; i <data.length; i++){
+                            cont += "<tr>";
+                            for (var key in data[i]){
+                                cont += "<td align='center'>" + data[i][key] + "</td>";
+                            }
+                            cont += "</tr>";
+                        }
+                        $(".content").html(cont);
+                    }
+                },function(){
+                    console.log('请求失败处理');
+                });
+            },
+            selectDbsList:function(){
+                //获取数据库列表
+                this.$http.get('/db/list',{
+                    params:{
+                        tableName:this.tableName,
+                        dbName:this.dbName,
+                        page:this.cur,
+                        limit:this.limit,
+                        ip:this.ip,
+                        username:this.username,
+                        password:this.password,
+                        port:this.port
+                    }
+                }).then(function(res){
+                    var temp = "";
+                    for (var obj in res.body){
+                        temp += "<option>" + res.body[obj].dbName + "</option>";
+                    }
+                    $(".db").html(temp);
+                    this.selectTableList();
+                    // this.dblist = res.body;
+                    // console.log(this.dblist);
+                },function(){
+                    console.log('请求失败处理');
+                });
+            },
+            selectTableList:function(){
+                //获取指定数据库表
+                var options = $(".db option:selected");
+                this.dbName = options.text();
+                this.$http.get('/table/list',{
+                    params:{
+                        tableName:this.tableName,
+                        dbName:this.dbName,
+                        page:this.cur,
+                        limit:this.limit,
+                        ip:this.ip,
+                        username:this.username,
+                        password:this.password,
+                        port:this.port
+                    }
+                }).then(function(res){
+                    var temp = "";
+                    for (var obj in res.body){
+                        temp += "<option>" + res.body[obj] + "</option>";
+                    }
+                    $(".tables").html(temp);
+                },function(){
+                    console.log('请求失败处理');
+                });
+            },
+            btnClick: function(data){//页码点击事件
+                if(data != this.cur){
+                    this.cur = data
+                }
+            },
+            pageClick: function(){
+                this.get();
+            },
+            shows: function () {
+                this.show = true;
+            },
+            register: function () {
+                this.$http.post('/conn/register',{
+                    params:{
+                        tableName:this.tableName,
+                        dbName:this.dbName,
+                        page:this.cur,
+                        limit:this.limit,
+                        ip:this.ip,
+                        username:this.username,
+                        password:this.password,
+                        port:this.port
+                    }
+                }).then(function(res){
+                    this.show = false;
+                    this.selectDbsList();
+                    alert(res.body.message);
+                },function(){
+                    console.log('请求失败处理');
+                });
+            }
+        },
+        computed: {
+            indexs: function(){
+                var left = 1;
+                var right = this.all;
+                var ar = [];
+                if(this.all>= 5){
+                    if(this.cur > 3 && this.cur < this.all-2){
+                        left = this.cur - 2
+                        right = this.cur + 2
+                    }else{
+                        if(this.cur<=3){
+                            left = 1
+                            right = 5
+                        }else{
+                            right = this.all
+                            left = this.all -4
+                        }
+                    }
+                }
+                while (left <= right){
+                    ar.push(left)
+                    left ++
+                }
+                return ar;
+            }
+        }
+    });
+    function changedb() {
+        var dbselect = $(".db option:selected");
+        vm.dbName = dbselect.text()
+        vm.selectTableList();
+    }
+
+    function changeTable() {
+        var dbselect = $(".db option:selected");
+        var tableselect = $(".tables option:selected");
+        vm.dbName = dbselect.text();
+        vm.tableName = tableselect.text();
+        vm.get();
+    }
+</script>
+</body>
+</html>

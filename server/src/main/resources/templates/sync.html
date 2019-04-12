@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>数据同步</title>
+    <script src="/static/js/vue.min.js"></script>
+    <script src="/static/js/jquery-3.3.1.js"></script>
+    <script src="https://cdn.staticfile.org/vue-resource/1.5.1/vue-resource.min.js"></script>
+</head>
+<body>
+<div id="app">
+    <div class="select">
+        <!--<select class="db" onchange="changedb()"></select>-->
+        <div style="width: 500px;float: left">
+            <span style="margin-left: 50px">引入数据源：</span>
+            <select v-model="sourceSelected" @change="showSourceDb(sourceSelected)">
+                <option value="">请选择</option>
+                <option v-for="option in connList" :value="option">{{ option }}</option>
+            </select>
+            <select v-model="sourceDbSelected" @change="showTables(sourceDbSelected)">
+                <option value="">请选择</option>
+                <option v-for="option in scourcedbList" :value="option.dbName">{{ option.dbName }}</option>
+            </select>
+            <!--<ul>-->
+                <!--<li v-for="option in tableList">{{ option }}</li>-->
+            <!--</ul>-->
+            <select v-model="tableSelected" multiple>
+            <option value="">请选择</option>
+            <option v-for="option in tableList" :value="option">{{ option }}</option>
+            </select>
+        </div>
+
+
+
+        <div>
+            <span style="margin-left: 400px">引入到：</span>
+            <select v-model="fromSelected" @change="showFromDb(fromSelected)">
+                <option value="">请选择</option>
+                <option v-for="option in connList" :value="option">{{ option }}</option>
+            </select>
+            <select v-model="fromDbSelected">
+                <option value="">请选择</option>
+                <option v-for="option in fromdbList" :value="option.dbName">{{ option.dbName }}</option>
+            </select>
+        </div>
+        <div>
+            <input type="button" onclick="sync()" value="开始同步">
+        </div>
+    </div>
+</div>
+<script>
+    var vm = new Vue({
+        el: '#app',
+        data: {
+            dbName: '',
+            tableName: '',
+            ip:'127.0.0.1',
+            username:'',
+            password:'',
+            port:'3306',
+            scourcedbList:[],
+            connList:[],
+            fromdbList:[],
+            sourceSelected:'',
+            fromSelected:'',
+            sourceDbSelected:'',
+            fromDbSelected:'',
+            tableSelected:[],
+            tableList:[]
+        },
+        created: function() {
+            this.getConnList();
+        },
+        methods:{
+            selectDbsList:function(type){
+                //获取数据库列表
+                this.$http.get('/db/list',{
+                    params:{
+                        tableName:this.tableName,
+                        dbName:this.dbName,
+                        ip:this.ip,
+                        username:this.username,
+                        password:this.password,
+                        port:this.port
+                    }
+                }).then(function(res){
+                    if(type == "from"){
+                        this.fromdbList = res.body;
+                    }else if(type == "source"){
+                        this.scourcedbList = res.body;
+                    }
+                },function(){
+                    console.log('请求失败处理');
+                });
+            },
+            getConnList:function(){
+                //获取数据库列表
+                this.$http.get('/conn/list',{
+                    params:{
+                        tableName:this.tableName,
+                        dbName:this.dbName,
+                        ip:this.ip,
+                        username:this.username,
+                        password:this.password,
+                        port:this.port
+                    }
+                }).then(function(res){
+                    this.connList = res.body;
+                },function(){
+                    console.log('请求失败处理');
+                });
+            },
+            selectTableList:function(){
+                //获取指定数据库表
+                this.$http.get('/table/list',{
+                    params:{
+                        tableName:this.tableName,
+                        dbName:this.dbName,
+                        ip:this.ip,
+                        username:this.username,
+                        password:this.password,
+                        port:this.port
+                    }
+                }).then(function(res){
+                    this.tableList = res.body;
+                },function(){
+                    console.log('请求失败处理');
+                });
+            },
+            showFromDb: function(ip){
+                this.ip = ip;
+                var type = "from";
+                this.selectDbsList(type);
+            },
+            showSourceDb: function(ip){
+                this.ip = ip;
+                var type = "source";
+                this.selectDbsList(type);
+            },
+            showTables: function(dbName){
+                this.dbName = dbName;
+                this.selectTableList();
+            },
+            syncs: function () {
+                var object = new Object();
+                object.sourceIp = this.sourceSelected;
+                object.toIp = this.fromSelected;
+                object.sourceDb = this.sourceDbSelected;
+                object.toDb = this.fromDbSelected;
+                object.tables = this.tableSelected;
+                this.$http.get('/exchange/sync',{
+                    params:{
+                        entity:JSON.stringify(object)
+                    }
+                },{emulateJSON:true}).then(function(res){
+                    if(res.body.code == 200){
+                        alert(res.body.message)
+                    }
+                },function(){
+                    console.log('请求失败处理');
+                });
+            }
+        }
+    });
+
+    function sync(){
+        var object = new Object();
+        object.sourceIp = vm.sourceSelected;
+        object.toIp = vm.fromSelected;
+        object.sourceDb = vm.sourceDbSelected;
+        object.toDb = vm.fromDbSelected;
+        object.tables = vm.tableSelected;
+        $.ajax({
+            url : '/exchange/sync',
+            type : 'POST',
+            dataType : 'json',
+            contentType : 'application/json',
+            data : JSON.stringify(object),
+            success : function(res) {
+                console.log(res)
+            }
+        })
+    }
+
+</script>
+</body>
+</html>
