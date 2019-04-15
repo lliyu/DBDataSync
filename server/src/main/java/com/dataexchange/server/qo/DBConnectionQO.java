@@ -1,5 +1,7 @@
 package com.dataexchange.server.qo;
 
+import java.io.Serializable;
+
 /**
  * @Auther: Administrator
  * @Date: 2018-12-20 19:14

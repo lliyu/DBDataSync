@@ -42,9 +42,9 @@ public class DBConnection {
 
     public static Connection getConnection(DBConnectionQO qo){
         String key = qo.getIp() + ":" + qo.getDbName();
-//        if(connectionMap.containsKey(key)){
-//            return connectionMap.get(key);
-//        }
+        if(connectionMap.containsKey(key)){
+            return connectionMap.get(key);
+        }
         String currUrl = MessageFormat.format(url, qo.getIp(), qo.getDbName());
         try {
             Class.forName(dirver);

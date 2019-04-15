@@ -1,5 +1,6 @@
 package com.dataexchange.server.util.httpclient;
 
+import com.alibaba.fastjson.JSONObject;
 import com.dataexchange.server.qo.DBsQO;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.HttpClient;
@@ -24,7 +25,7 @@ import java.util.Map;
  */
 public class ConsumerRPC {
 
-    public static String doPost(DBsQO qo) {
+    public static String doPost(DBsQO qo, String tableName) {
 
         Map<String, String> param = new HashMap<>();
         param.put("ip", qo.getIp());
@@ -32,7 +33,7 @@ public class ConsumerRPC {
         param.put("username", qo.getUsername());
         param.put("password", qo.getPassword());
         param.put("port", qo.getPort());
-        param.put("tableName", qo.getTableName());
+        param.put("tableName", tableName);
 
         // 创建Httpclient对象
         String url = "http://localhost:8081/consumer";
@@ -84,6 +85,6 @@ public class ConsumerRPC {
         param.put("password", "123456");
         param.put("port", "3306");
         param.put("tableName", "tb_address");
-        doPost(qo);
+        doPost(qo, "");
     }
 }

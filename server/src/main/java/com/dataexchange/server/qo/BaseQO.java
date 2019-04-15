@@ -1,5 +1,7 @@
 package com.dataexchange.server.qo;
 
+import java.io.Serializable;
+
 /**
  * @author ly
  * @create 2018-11-10 23:30

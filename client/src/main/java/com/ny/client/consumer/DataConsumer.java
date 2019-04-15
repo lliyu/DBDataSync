@@ -60,7 +60,7 @@ public class DataConsumer {
                 try {
                     String message = new String(body, "utf-8");
                     DBsDao.createTable(message, qo);
-                    System.out.println(consumerTag);
+//                    System.out.println(consumerTag);
                 } catch (SQLException e) {
                     e.printStackTrace();
                 } catch (ClassNotFoundException e) {
@@ -104,7 +104,7 @@ public class DataConsumer {
 //                        RemoteDBOperation.insertData(academicWorksEntity);
 ////                        jedisClientPool.set(key, String.valueOf(academicWorksEntity.getId()));
 //                    }
-                    System.out.println(sb.toString());
+//                    System.out.println(sb.toString());
                 } catch (Exception e) {
                     e.printStackTrace();
                     //数据插入失败 进行重试
@@ -125,6 +125,7 @@ public class DataConsumer {
         while(!DBsDao.isTableExist(qo)){
             channel.basicConsume(DATA_STRUCTURE_QUEUE, false, consumerStructure);
         }
+        System.out.println("开始消费:" + key + ":" + DATA_QUEUE);
         channel.basicConsume(key + ":" + DATA_QUEUE, false, consumerData);
     }
 }

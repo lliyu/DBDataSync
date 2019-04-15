@@ -8,6 +8,8 @@ import com.rabbitmq.client.Channel;
 import com.rabbitmq.client.Connection;
 import com.rabbitmq.client.ConnectionFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.util.SerializationUtils;
+
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -30,7 +32,19 @@ public class DataProducer {
     private static String DATA_SYNC_EXCHANGE = "data_sync_exchange";
     private static String ROUTE_KEY = "data";
 
-    public void syncData(DBsQO source, DBsQO to) throws IOException, TimeoutException, SQLException, ClassNotFoundException {
+    public void syncData(DBsQO source, DBsQO to, String tableName) throws IOException, TimeoutException, SQLException, ClassNotFoundException {
+
+        //todo 这里的问题在于通过序列化的方式无法转换对象
+//        Object deserialize = SerializationUtils.deserialize(SerializationUtils.serialize(source));
+//        if(deserialize instanceof DBsQO){
+//            tempSource = (DBsQO) deserialize;
+//            tempSource.setTableName(tableName);
+//        }
+        //复制对象保证在多线程环境下前面的对象不会被覆盖
+        DBsQO tempSource = JSONObject.parseObject(JSONObject.toJSONString(source), DBsQO.class);
+        tempSource.setTableName(tableName);
+        DBsQO tempTo = JSONObject.parseObject(JSONObject.toJSONString(to), DBsQO.class);
+        tempTo.setTableName(tableName);
         ConnectionFactory factory = new ConnectionFactory();
         factory.setHost("39.105.108.154");
         factory.setUsername("admin");
@@ -43,7 +57,7 @@ public class DataProducer {
         Channel channel = connection.createChannel();
         //由消费者来创建交换机和队列  因为一般是先打开消费者
         channel.exchangeDeclare(DATA_SYNC_EXCHANGE, BuiltinExchangeType.DIRECT);
-        String key = to.getIp() + ":" + to.getDbName() + ":" + to.getTableName();
+        String key = tempTo.getIp() + ":" + tempTo.getDbName() + ":" + tempTo.getTableName();
         channel.queueDeclare(key + ":data_queue", false, false, true, null);
 
         channel.queueBind(key + ":data_queue",
@@ -52,16 +66,16 @@ public class DataProducer {
         channel.confirmSelect();//设置为confirm模式
 
         //判断数据表是否存在，不存在则将数据结构进行同步
-        if(!DBsDao.isTableExist(to)){
+        if(!DBsDao.isTableExist(tempTo)){
             channel.queueDeclare("data_structure_queue", false, false, true, null);
 
             channel.queueBind("data_structure_queue", DATA_SYNC_EXCHANGE, "structure");
-            String tableSQL = DBsDao.getCreateTableSQL(source);
+            String tableSQL = DBsDao.getCreateTableSQL(tempSource);
             channel.basicPublish(DATA_SYNC_EXCHANGE, "structure", null, tableSQL.getBytes("utf-8"));
         }
 
         //推送数据
-        List<Object> data = dBsDao.getRows(source);
+        List<Object> data = dBsDao.getRows(tempSource);
         data.stream().forEach(entity -> {
             try {
                 ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -72,7 +86,7 @@ public class DataProducer {
                 channel.basicPublish(DATA_SYNC_EXCHANGE, key + ":" + ROUTE_KEY, null, bytes);
                 if(channel.waitForConfirms()){
                     //数据推送成功 修改本地消息表中的状态
-                    System.out.println(source.getTableName() + ":" + jsonObject.get("id") + ":消息推送成功");
+                    System.out.println(tableName + ":" + jsonObject.get("id") + ":消息推送成功");
                     //DBData.updateStatus(entity,"confirm");
                 }
             } catch (IOException e) {

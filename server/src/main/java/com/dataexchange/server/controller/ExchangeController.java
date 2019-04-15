@@ -48,24 +48,36 @@ public class ExchangeController {
 
         List<String> tables = entity.getTables();
         ExecutorService executorService = Executors.newFixedThreadPool(tables.size());
+        DBsQO finalSource = source;
+        DBsQO finalTo = to;
+        tables.stream().forEach(table -> {
+            executorService.execute(new Runnable() {
+                @Override
+                public void run() {
+                    finalSource.setTableName(table);
+                    finalTo.setTableName(table);
+                    DataProducer dataProducer = new DataProducer();
+                    try {
+                        dataProducer.syncData(finalSource, finalTo, table);
+                        ConsumerRPC.doPost(finalTo, table);
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            });
+        });
 
-        for(String tableName : tables){
-//            executorService.execute(new Runnable() {
-//                @Override
-//                public void run() {
-//
-//                }
-//            });
-            source.setTableName(tableName);
-            to.setTableName(tableName);
-            DataProducer dataProducer = new DataProducer();
-            try {
-                dataProducer.syncData(source, to);
-                ConsumerRPC.doPost(to);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }
+//        for(String tableName : tables){
+//            source.setTableName(tableName);
+//            to.setTableName(tableName);
+//            DataProducer dataProducer = new DataProducer();
+//            try {
+//                dataProducer.syncData(source, to, tableName);
+//                ConsumerRPC.doPost(to);
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//            }
+//        }
 
         return new ResponseData(200,"已经开始同步，请稍后查看结果");
     }
